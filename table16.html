@@ -19,14 +19,16 @@
   .filename { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #aaa; }
   .filename input { background: #1a1a1a; color: #eee; border: 1px solid #444; border-radius: 4px; padding: 6px 8px; font-size: 13px; }
   table { border-collapse: collapse; width: 100%; margin-bottom: 16px; }
-  th, td { border: 1px solid #333; padding: 4px 6px; text-align: left; }
+  th, td { border: 1px solid #333; padding: 4px 6px; text-align: left; vertical-align: middle; }
   th { background: #1a1a1a; font-size: 12px; color: #bbb; position: sticky; top: 0; }
   td.pos { text-align: center; font-weight: bold; width: 36px; color: #888; }
-  td input { width: 100%; background: #1a1a1a; color: #eee; border: 1px solid #333; border-radius: 3px; padding: 6px; font-size: 13px; }
-  td input:focus { outline: none; border-color: #1f6feb; }
-  td.club input { min-width: 160px; }
-  td.num input { width: 64px; text-align: center; }
-  .legend { font-size: 12px; color: #888; margin-bottom: 16px; line-height: 1.6; }
+  td input, td select { width: 100%; background: #1a1a1a; color: #eee; border: 1px solid #333; border-radius: 3px; padding: 6px; font-size: 13px; }
+  td input:focus, td select:focus { outline: none; border-color: #1f6feb; }
+  td.png { width: 150px; }
+  td.club input { min-width: 170px; }
+  td.num { width: 70px; }
+  td.num input { text-align: center; }
+  .legend { font-size: 12px; color: #888; margin-bottom: 16px; line-height: 1.7; }
   .legend code { color: #ddd; }
   .preview-wrap { margin-top: 8px; }
   .preview-wrap h2 { font-size: 14px; margin: 0 0 6px; }
@@ -59,8 +61,13 @@
     <tbody id="tableBody"></tbody>
   </table>
 
+  <!-- Suggestions for the Club Name combobox. Type freely, or pick a suggestion. -->
+  <datalist id="clubList"></datalist>
+
   <div class="legend">
-    Allwedd / Key:
+    Caeau / Fields (8):
+    <code>Standing</code> = PNG safle (up/down/same) &nbsp;·&nbsp;
+    <code>ClubName</code> &nbsp;·&nbsp;
     <code>Chwarae</code> = Played &nbsp;·&nbsp;
     <code>Enill</code> = Won &nbsp;·&nbsp;
     <code>Cyfartal</code> = Drawn &nbsp;·&nbsp;
@@ -68,8 +75,9 @@
     <code>GoalDif</code> = Goal Difference &nbsp;·&nbsp;
     <code>Points</code> = Points.
     <br />
-    Pob gwerth yn cael ei allforio fel llinyn (string), e.e. <code>"3"</code>, <code>"-1"</code> — fel sy'n ofynnol gan DataClay.
-    Mae'r allbwn yn arae sy'n cynnwys un gwrthrych. / All values export as strings; output is an array containing one object.
+    Mae <code>Standing</code> yn allforio enw ffeil PNG (e.e. <code>"up.png"</code>); pob gwerth arall yn llinyn (string), e.e. <code>"3"</code>, <code>"-1"</code>.
+    Mae'r allbwn yn arae sy'n cynnwys un gwrthrych gyda 128 allwedd (16 × 8). /
+    Standing exports a PNG filename; all other values export as strings. Output is an array with one object of 128 keys (16 × 8).
   </div>
 
   <div class="preview-wrap">
@@ -81,26 +89,55 @@
 (function () {
   "use strict";
 
-  // The 7 fields per team, in the exact key order of the source JSON.
+  // ---- Configurable lists (rename to match your real assets / league) ----
+
+  // PNG options for the Standing column. The `value` is what gets exported.
+  // Rename these filenames to match the PNGs configured in DataClay.
+  var PNG_OPTIONS = [
+    { value: "",         label: "— (dim / none)" },
+    { value: "up.png",   label: "▲ I fyny / Up" },
+    { value: "down.png", label: "▼ I lawr / Down" },
+    { value: "same.png", label: "= Dim newid / Same" }
+  ];
+
+  // Club suggestions for the Club Name combobox (type freely or pick).
+  // Add the full league's clubs here to make selection one-click.
+  var CLUB_SUGGESTIONS = [
+    "Caernarfon",
+    "Y Seintiau Newydd"
+  ];
+
+  // ---- The 8 fields per team, in export key order. "Standing" is first. ----
   var FIELDS = [
-    { key: "ClubName", label: "Club Name", type: "text" },
-    { key: "Chwarae",  label: "Chwarae (P)",  type: "number" },
-    { key: "Enill",    label: "Enill (W)",    type: "number" },
-    { key: "Cyfartal", label: "Cyfartal (D)", type: "number" },
-    { key: "Colli",    label: "Colli (L)",    type: "number" },
-    { key: "GoalDif",  label: "GoalDif (GD)", type: "number" },
-    { key: "Points",   label: "Points (Pts)", type: "number" }
+    { key: "Standing", label: "Standing (PNG)", type: "png" },
+    { key: "ClubName", label: "Club Name",      type: "club" },
+    { key: "Chwarae",  label: "Chwarae (P)",    type: "number" },
+    { key: "Enill",    label: "Enill (W)",      type: "number" },
+    { key: "Cyfartal", label: "Cyfartal (D)",   type: "number" },
+    { key: "Colli",    label: "Colli (L)",      type: "number" },
+    { key: "GoalDif",  label: "GoalDif (GD)",   type: "number" },
+    { key: "Points",   label: "Points (Pts)",   type: "number" }
   ];
   var ROWS = 16;
 
   var tableBody = document.getElementById("tableBody");
   var headRow = document.getElementById("headRow");
+  var clubList = document.getElementById("clubList");
   var preview = document.getElementById("preview");
   var statusEl = document.getElementById("status");
 
   function inputId(pos, key) { return "f-" + pos + "-" + key; }
 
-  // ---- Build header ----
+  // ---- Build the Club Name datalist suggestions ----
+  function buildClubList() {
+    CLUB_SUGGESTIONS.forEach(function (name) {
+      var opt = document.createElement("option");
+      opt.value = name;
+      clubList.appendChild(opt);
+    });
+  }
+
+  // ---- Build header (# + 8 field labels = 9 columns) ----
   function buildHead() {
     var th = document.createElement("th");
     th.textContent = "#";
@@ -112,6 +149,41 @@
     });
   }
 
+  // ---- Create the control for one cell ----
+  function makeControl(pos, f) {
+    var control;
+    if (f.type === "png") {
+      control = document.createElement("select");
+      PNG_OPTIONS.forEach(function (o) {
+        var opt = document.createElement("option");
+        opt.value = o.value;
+        opt.textContent = o.label;
+        control.appendChild(opt);
+      });
+    } else if (f.type === "club") {
+      control = document.createElement("input");
+      control.type = "text";
+      control.setAttribute("list", "clubList");
+      control.setAttribute("autocomplete", "off");
+      control.placeholder = "Clwb " + pos;
+    } else { // number
+      control = document.createElement("input");
+      control.type = "number";
+      control.step = "1";
+      control.setAttribute("autocomplete", "off");
+      control.placeholder = "0";
+    }
+    control.id = inputId(pos, f.key);
+    return control;
+  }
+
+  function tdClass(type) {
+    if (type === "png") return "png";
+    if (type === "club") return "club";
+    return "num";
+  }
+
+  // ---- Build one table row ----
   function buildRow(pos) {
     var tr = document.createElement("tr");
 
@@ -122,52 +194,52 @@
 
     FIELDS.forEach(function (f) {
       var td = document.createElement("td");
-      td.className = f.type === "number" ? "num" : "club";
-      var inp = document.createElement("input");
-      inp.id = inputId(pos, f.key);
-      inp.setAttribute("autocomplete", "off");
-      if (f.type === "number") {
-        inp.type = "number";
-        inp.step = "1";
-        inp.placeholder = "0";
-      } else {
-        inp.type = "text";
-        inp.placeholder = "Clwb " + pos;
-      }
-      td.appendChild(inp);
+      td.className = tdClass(f.type);
+      td.appendChild(makeControl(pos, f));
       tr.appendChild(td);
     });
 
     tableBody.appendChild(tr);
   }
 
-  // ---- Build 16 editable rows ----
   function buildRows() {
     for (var pos = 1; pos <= ROWS; pos++) buildRow(pos);
   }
 
-  // ---- Collect data into the export shape: [ { "1ClubName": "...", ... } ] ----
+  // ---- Safely set a control's value (adds the option to a <select> if missing) ----
+  function setControlValue(el, v) {
+    if (el.tagName === "SELECT") {
+      var found = false;
+      for (var i = 0; i < el.options.length; i++) {
+        if (el.options[i].value === v) { found = true; break; }
+      }
+      if (!found) {
+        var opt = document.createElement("option");
+        opt.value = v;
+        opt.textContent = v === "" ? "—" : v;
+        el.appendChild(opt);
+      }
+    }
+    el.value = v;
+  }
+
+  // ---- Collect data into the export shape: [ { "1Standing": "...", ... } ] ----
   function collectData() {
     var row = {};
     for (var pos = 1; pos <= ROWS; pos++) {
       for (var i = 0; i < FIELDS.length; i++) {
         var f = FIELDS[i];
-        var inp = document.getElementById(inputId(pos, f.key));
-        var val = inp ? String(inp.value).trim() : "";
-        if (val === "" && f.type === "number") val = "0";
-        row["" + pos + f.key] = val;   // string key preserves insertion order
+        var el = document.getElementById(inputId(pos, f.key));
+        var val = el ? String(el.value).trim() : "";
+        if (val === "" && f.type === "number") val = "0";  // numbers default to "0"
+        row["" + pos + f.key] = val;  // string key preserves insertion order
       }
     }
     return [row];
   }
 
-  function jsonText() {
-    return JSON.stringify(collectData(), null, 2);
-  }
-
-  function updatePreview() {
-    preview.value = jsonText();
-  }
+  function jsonText() { return JSON.stringify(collectData(), null, 2); }
+  function updatePreview() { preview.value = jsonText(); }
 
   function setStatus(msg) {
     statusEl.textContent = msg;
@@ -225,10 +297,11 @@
     for (var pos = 1; pos <= ROWS; pos++) {
       for (var i = 0; i < FIELDS.length; i++) {
         var f = FIELDS[i];
-        var inp = document.getElementById(inputId(pos, f.key));
-        if (!inp) continue;
+        var el = document.getElementById(inputId(pos, f.key));
+        if (!el) continue;
         var key = "" + pos + f.key;
-        inp.value = (key in obj && obj[key] != null) ? String(obj[key]) : "";
+        var v = (key in obj && obj[key] != null) ? String(obj[key]) : "";
+        setControlValue(el, v);
       }
     }
     updatePreview();
@@ -238,11 +311,8 @@
   function handleFile(file) {
     var reader = new FileReader();
     reader.onload = function (e) {
-      try {
-        importData(JSON.parse(e.target.result));
-      } catch (err) {
-        setStatus("Methu darllen JSON / Could not parse JSON");
-      }
+      try { importData(JSON.parse(e.target.result)); }
+      catch (err) { setStatus("Methu darllen JSON / Could not parse JSON"); }
     };
     reader.readAsText(file);
   }
@@ -266,7 +336,7 @@
     for (var p = 1; p <= ROWS; p++) {
       for (var j = 0; j < FIELDS.length; j++) {
         var fld = FIELDS[j];
-        document.getElementById(inputId(p, fld.key)).value = teams[p - 1][fld.key];
+        setControlValue(document.getElementById(inputId(p, fld.key)), teams[p - 1][fld.key]);
       }
     }
     updatePreview();
@@ -276,24 +346,25 @@
   function clearAll() {
     for (var pos = 1; pos <= ROWS; pos++) {
       for (var i = 0; i < FIELDS.length; i++) {
-        document.getElementById(inputId(pos, FIELDS[i].key)).value = "";
+        setControlValue(document.getElementById(inputId(pos, FIELDS[i].key)), "");
       }
     }
     updatePreview();
     setStatus("Wedi clirio / Cleared");
   }
 
-  // Sample data taken from the supplied test JSON (positions 1 & 2).
+  // Sample data based on the supplied test JSON (positions 1 & 2), with demo Standing PNGs.
   function loadSample() {
     var sample = {
-      "1ClubName": "Caernarfon", "1Chwarae": "3", "1Enill": "1", "1Cyfartal": "0", "1Colli": "0", "1GoalDif": "-1", "1Points": "3",
-      "2ClubName": "Y Seintiau Newydd", "2Chwarae": "0", "2Enill": "0", "2Cyfartal": "0", "2Colli": "0", "2GoalDif": "0", "2Points": "0"
+      "1Standing": "up.png",   "1ClubName": "Caernarfon",        "1Chwarae": "3", "1Enill": "1", "1Cyfartal": "0", "1Colli": "0", "1GoalDif": "-1", "1Points": "3",
+      "2Standing": "same.png", "2ClubName": "Y Seintiau Newydd", "2Chwarae": "0", "2Enill": "0", "2Cyfartal": "0", "2Colli": "0", "2GoalDif": "0",  "2Points": "0"
     };
     importData([sample]);
     setStatus("Wedi llwytho enghraifft / Sample loaded");
   }
 
   // ---- Wire up ----
+  buildClubList();
   buildHead();
   buildRows();
   updatePreview();
@@ -307,7 +378,9 @@
     if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
     e.target.value = ""; // allow re-importing the same file
   });
+  // Live preview on any edit (covers both text/number inputs and the select).
   tableBody.addEventListener("input", updatePreview);
+  tableBody.addEventListener("change", updatePreview);
 })();
 </script>
 </body>
