@@ -4,41 +4,101 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sgorio — Tabl 16 / League Table Builder</title>
+
+<!-- Stand-in broadcast-style font. Replace with the real Sgorio brand font
+     via @font-face below when you have the files; falls back gracefully offline. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&display=swap" rel="stylesheet" />
+
 <style>
-  /* Minimal, functional styling only — full styling comes later. */
+  :root {
+    --bg: #000;
+    --purple: #6c2bd9;          /* TODO: set to the exact Sgorio brand purple */
+    --row-a: #1a1622;
+    --row-b: #221c2c;
+    --text: #ffffff;
+    --muted: #cdbfe6;
+    --focus: #b388ff;
+    /* Drop the real brand font in front of this stack via @font-face. */
+    --brand-font: "Sgorio", "Archivo", "Arial Narrow", Arial, Helvetica, sans-serif;
+    --ui-font: system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+  }
+  /* @font-face { font-family: "Sgorio"; src: url("fonts/Sgorio.woff2") format("woff2"); font-weight: 400 900; } */
+
   * { box-sizing: border-box; }
-  body { font-family: system-ui, Arial, sans-serif; margin: 0; padding: 16px; background: #111; color: #eee; }
-  h1 { font-size: 18px; margin: 0 0 4px; }
-  p.sub { margin: 0 0 16px; color: #aaa; font-size: 13px; }
-  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
-  button, label.btn { background: #2a2a2a; color: #eee; border: 1px solid #444; border-radius: 4px; padding: 8px 12px; cursor: pointer; font-size: 13px; }
-  button:hover, label.btn:hover { background: #3a3a3a; }
-  button.primary { background: #1f6feb; border-color: #1f6feb; }
-  button.primary:hover { background: #2b7cf0; }
+  body { margin: 0; padding: 24px; background: var(--bg); color: var(--text); font-family: var(--brand-font); }
+  h1 { font-size: 18px; margin: 0 0 4px; letter-spacing: 1px; text-transform: uppercase; }
+  p.sub { margin: 0 0 16px; color: #9a8fb0; font-size: 13px; font-family: var(--ui-font); }
+
+  /* ---- Toolbar (tool UI, not part of the graphic) ---- */
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; font-family: var(--ui-font); }
+  button, label.btn { background: #2a2433; color: #fff; border: 1px solid #4a3f5e; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-size: 13px; }
+  button:hover, label.btn:hover { background: #392f4d; }
+  button.primary { background: var(--purple); border-color: var(--purple); }
+  button.primary:hover { filter: brightness(1.12); }
   input[type="file"] { display: none; }
-  .filename { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #aaa; }
-  .filename input { background: #1a1a1a; color: #eee; border: 1px solid #444; border-radius: 4px; padding: 6px 8px; font-size: 13px; }
-  table { border-collapse: collapse; width: 100%; margin-bottom: 16px; }
-  th, td { border: 1px solid #333; padding: 4px 6px; text-align: left; vertical-align: middle; }
-  th { background: #1a1a1a; font-size: 12px; color: #bbb; position: sticky; top: 0; }
-  td.pos { text-align: center; font-weight: bold; width: 36px; color: #888; }
-  td input, td select { width: 100%; background: #1a1a1a; color: #eee; border: 1px solid #333; border-radius: 3px; padding: 6px; font-size: 13px; }
-  td input:focus, td select:focus { outline: none; border-color: #1f6feb; }
-  td.png { width: 150px; }
-  td.club input { min-width: 170px; }
-  td.num { width: 70px; }
-  td.num input { text-align: center; }
-  .legend { font-size: 12px; color: #888; margin-bottom: 16px; line-height: 1.7; }
+  .filename { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #9a8fb0; }
+  .filename input { background: #1a1622; color: #fff; border: 1px solid #4a3f5e; border-radius: 6px; padding: 6px 8px; font-size: 13px; font-family: var(--ui-font); }
+  .status { font-size: 12px; color: #9fe39f; min-height: 16px; margin-left: 8px; font-family: var(--ui-font); }
+
+  /* ---- The broadcast-style table ---- */
+  .tableWrap { max-width: 980px; border-radius: 10px; overflow: hidden; }
+  table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+  th, td { padding: 11px 10px; border: 0; white-space: nowrap; overflow: hidden; }
+
+  /* Column widths (table-layout: fixed uses the header row) */
+  thead th:nth-child(1) { width: 64px; }   /* movement */
+  thead th:nth-child(2) { width: 54px; }   /* position */
+  thead th:nth-child(n+4) { width: 74px; } /* CH .. PT */
+
+  /* Header: purple bar with a white block over the first two columns */
+  thead th { background: var(--purple); color: #fff; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; font-size: 14px; text-align: center; height: 46px; }
+  thead th.blank { background: #fff; }
+  thead th.team { text-align: left; }
+
+  /* Data rows */
+  tbody tr:nth-child(odd)  { background: var(--row-a); }
+  tbody tr:nth-child(even) { background: var(--row-b); }
+
+  td.standing { text-align: center; color: #fff; font-size: 18px; }
+  td.pos      { text-align: center; color: var(--muted); font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; }
+  td.club     { text-align: left; color: #fff; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; font-size: 16px; }
+  td.num      { text-align: center; color: #fff; font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+
+  /* Make inputs/selects render like plain text in the cell, but stay editable */
+  td input, td select {
+    width: 100%; padding: 2px 0; margin: 0;
+    background: transparent; border: 0; outline: 0;
+    color: inherit; font-family: inherit; font-size: inherit; font-weight: inherit;
+    letter-spacing: inherit; text-transform: inherit; text-align: inherit;
+    font-variant-numeric: inherit;
+  }
+  td input::placeholder { color: rgba(255,255,255,0.22); }
+  td input:focus, td select:focus {
+    background: rgba(179,136,255,0.18);
+    box-shadow: inset 0 0 0 1px var(--focus);
+    border-radius: 4px;
+  }
+  /* Movement select: strip native chrome so only the symbol shows */
+  td.standing select { -webkit-appearance: none; -moz-appearance: none; appearance: none; text-align-last: center; cursor: pointer; }
+  td.standing select option { color: #111; } /* readable in the native dropdown */
+  /* Hide number spinners for a clean look */
+  td input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+  td input[type="number"]::-webkit-inner-spin-button,
+  td input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+  /* ---- Legend + preview (tool UI) ---- */
+  .legend { font-size: 12px; color: #9a8fb0; margin: 18px 0 16px; line-height: 1.7; max-width: 980px; font-family: var(--ui-font); }
   .legend code { color: #ddd; }
-  .preview-wrap { margin-top: 8px; }
+  .preview-wrap { margin-top: 8px; max-width: 980px; font-family: var(--ui-font); }
   .preview-wrap h2 { font-size: 14px; margin: 0 0 6px; }
-  textarea#preview { width: 100%; height: 220px; background: #0a0a0a; color: #8fdf8f; border: 1px solid #333; border-radius: 4px; padding: 10px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
-  .status { font-size: 12px; color: #6ad06a; min-height: 16px; margin-left: 8px; }
+  textarea#preview { width: 100%; height: 200px; background: #0a0a0a; color: #8fdf8f; border: 1px solid #333; border-radius: 6px; padding: 10px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
 </style>
 </head>
 <body>
   <h1>Sgorio — Tabl 16 / League Table Builder</h1>
-  <p class="sub">Llenwch y tabl (safleoedd 1–16) ac allforio JSON ar gyfer DataClay. / Fill in the 16-position table and export JSON for DataClay.</p>
+  <p class="sub">Llenwch y tabl ac allforio JSON ar gyfer DataClay. / Fill in the table and export JSON for DataClay. Cliciwch unrhyw gell i'w golygu. / Click any cell to edit.</p>
 
   <div class="toolbar">
     <button class="primary" id="exportBtn">⬇ Allforio JSON / Export JSON</button>
@@ -54,30 +114,32 @@
     <span class="status" id="status"></span>
   </div>
 
-  <table id="tableEl">
-    <thead>
-      <tr id="headRow"></tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
+  <div class="tableWrap">
+    <table id="tableEl">
+      <thead>
+        <tr id="headRow"></tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
 
   <!-- Suggestions for the Club Name combobox. Type freely, or pick a suggestion. -->
   <datalist id="clubList"></datalist>
 
   <div class="legend">
     Caeau / Fields (8):
-    <code>Standing</code> = PNG safle (up/down/same) &nbsp;·&nbsp;
-    <code>ClubName</code> &nbsp;·&nbsp;
-    <code>Chwarae</code> = Played &nbsp;·&nbsp;
-    <code>Enill</code> = Won &nbsp;·&nbsp;
-    <code>Cyfartal</code> = Drawn &nbsp;·&nbsp;
-    <code>Colli</code> = Lost &nbsp;·&nbsp;
-    <code>GoalDif</code> = Goal Difference &nbsp;·&nbsp;
-    <code>Points</code> = Points.
+    <code>Standing</code> (PNG: ▲ up / ▼ down / — same) &nbsp;·&nbsp;
+    <code>ClubName</code> (TÎM) &nbsp;·&nbsp;
+    <code>Chwarae</code> (CH) &nbsp;·&nbsp;
+    <code>Enill</code> (E) &nbsp;·&nbsp;
+    <code>Cyfartal</code> (CYF) &nbsp;·&nbsp;
+    <code>Colli</code> (COLL) &nbsp;·&nbsp;
+    <code>GoalDif</code> (+/-) &nbsp;·&nbsp;
+    <code>Points</code> (PT).
     <br />
-    Mae <code>Standing</code> yn allforio enw ffeil PNG (e.e. <code>"up.png"</code>); pob gwerth arall yn llinyn (string), e.e. <code>"3"</code>, <code>"-1"</code>.
-    Mae'r allbwn yn arae sy'n cynnwys un gwrthrych gyda 128 allwedd (16 × 8). /
-    Standing exports a PNG filename; all other values export as strings. Output is an array with one object of 128 keys (16 × 8).
+    Mae <code>Standing</code> yn allforio enw ffeil PNG (e.e. <code>"up.png"</code>); pob gwerth arall yn llinyn (string).
+    Allbwn = arae ag un gwrthrych, 128 allwedd (16 × 8). /
+    Standing exports a PNG filename; other values are strings. Output is an array with one object of 128 keys.
   </div>
 
   <div class="preview-wrap">
@@ -91,32 +153,32 @@
 
   // ---- Configurable lists (rename to match your real assets / league) ----
 
-  // PNG options for the Standing column. The `value` is what gets exported.
-  // Rename these filenames to match the PNGs configured in DataClay.
+  // PNG options for the Standing column. The `value` is exported; `label` is the
+  // on-screen symbol. Rename the filenames to match the PNGs used in DataClay.
   var PNG_OPTIONS = [
-    { value: "",         label: "— (dim / none)" },
-    { value: "up.png",   label: "▲ I fyny / Up" },
-    { value: "down.png", label: "▼ I lawr / Down" },
-    { value: "same.png", label: "= Dim newid / Same" }
+    { value: "",         label: "·", title: "Heb ei osod / unset" },
+    { value: "up.png",   label: "▲", title: "I fyny / Up" },
+    { value: "down.png", label: "▼", title: "I lawr / Down" },
+    { value: "same.png", label: "—", title: "Dim newid / Same" }
   ];
 
   // Club suggestions for the Club Name combobox (type freely or pick).
-  // Add the full league's clubs here to make selection one-click.
   var CLUB_SUGGESTIONS = [
     "Caernarfon",
     "Y Seintiau Newydd"
   ];
 
   // ---- The 8 fields per team, in export key order. "Standing" is first. ----
+  // `head` is the short column label shown in the purple header bar.
   var FIELDS = [
-    { key: "Standing", label: "Standing (PNG)", type: "png" },
-    { key: "ClubName", label: "Club Name",      type: "club" },
-    { key: "Chwarae",  label: "Chwarae (P)",    type: "number" },
-    { key: "Enill",    label: "Enill (W)",      type: "number" },
-    { key: "Cyfartal", label: "Cyfartal (D)",   type: "number" },
-    { key: "Colli",    label: "Colli (L)",      type: "number" },
-    { key: "GoalDif",  label: "GoalDif (GD)",   type: "number" },
-    { key: "Points",   label: "Points (Pts)",   type: "number" }
+    { key: "Standing", label: "Standing (PNG)",   head: "",     type: "png"    },
+    { key: "ClubName", label: "Club / Tîm",       head: "TÎM",  type: "club"   },
+    { key: "Chwarae",  label: "Chwarae / Played", head: "CH",   type: "number" },
+    { key: "Enill",    label: "Enill / Won",      head: "E",    type: "number" },
+    { key: "Cyfartal", label: "Cyfartal / Drawn", head: "CYF",  type: "number" },
+    { key: "Colli",    label: "Colli / Lost",     head: "COLL", type: "number" },
+    { key: "GoalDif",  label: "Goal Difference",  head: "+/-",  type: "number" },
+    { key: "Points",   label: "Points / Pwyntiau",head: "PT",   type: "number" }
   ];
   var ROWS = 16;
 
@@ -137,16 +199,24 @@
     });
   }
 
-  // ---- Build header (# + 8 field labels = 9 columns) ----
+  // ---- Build header: white block over movement+position, then field labels ----
   function buildHead() {
-    var th = document.createElement("th");
-    th.textContent = "#";
-    headRow.appendChild(th);
-    FIELDS.forEach(function (f) {
-      var c = document.createElement("th");
-      c.textContent = f.label;
-      headRow.appendChild(c);
-    });
+    var blankMove = document.createElement("th");
+    blankMove.className = "blank";
+    headRow.appendChild(blankMove);
+
+    var blankPos = document.createElement("th");
+    blankPos.className = "blank";
+    headRow.appendChild(blankPos);
+
+    for (var i = 1; i < FIELDS.length; i++) { // ClubName onward
+      var f = FIELDS[i];
+      var th = document.createElement("th");
+      th.className = (f.type === "club") ? "team" : "numh";
+      th.textContent = f.head;
+      th.title = f.label;
+      headRow.appendChild(th);
+    }
   }
 
   // ---- Create the control for one cell ----
@@ -154,10 +224,12 @@
     var control;
     if (f.type === "png") {
       control = document.createElement("select");
+      control.title = f.label;
       PNG_OPTIONS.forEach(function (o) {
         var opt = document.createElement("option");
         opt.value = o.value;
         opt.textContent = o.label;
+        opt.title = o.title;
         control.appendChild(opt);
       });
     } else if (f.type === "club") {
@@ -178,26 +250,35 @@
   }
 
   function tdClass(type) {
-    if (type === "png") return "png";
+    if (type === "png") return "standing";
     if (type === "club") return "club";
     return "num";
   }
 
-  // ---- Build one table row ----
+  // ---- Build one table row: movement, position, then ClubName onward ----
   function buildRow(pos) {
     var tr = document.createElement("tr");
 
+    // 1) Movement (Standing)
+    var sTd = document.createElement("td");
+    sTd.className = tdClass(FIELDS[0].type);
+    sTd.appendChild(makeControl(pos, FIELDS[0]));
+    tr.appendChild(sTd);
+
+    // 2) Position number (static, not exported as its own field)
     var posCell = document.createElement("td");
     posCell.className = "pos";
     posCell.textContent = pos;
     tr.appendChild(posCell);
 
-    FIELDS.forEach(function (f) {
+    // 3) ClubName .. Points
+    for (var i = 1; i < FIELDS.length; i++) {
+      var f = FIELDS[i];
       var td = document.createElement("td");
       td.className = tdClass(f.type);
       td.appendChild(makeControl(pos, f));
       tr.appendChild(td);
-    });
+    }
 
     tableBody.appendChild(tr);
   }
@@ -216,7 +297,7 @@
       if (!found) {
         var opt = document.createElement("option");
         opt.value = v;
-        opt.textContent = v === "" ? "—" : v;
+        opt.textContent = v === "" ? "·" : v;
         el.appendChild(opt);
       }
     }
@@ -356,8 +437,8 @@
   // Sample data based on the supplied test JSON (positions 1 & 2), with demo Standing PNGs.
   function loadSample() {
     var sample = {
-      "1Standing": "up.png",   "1ClubName": "Caernarfon",        "1Chwarae": "3", "1Enill": "1", "1Cyfartal": "0", "1Colli": "0", "1GoalDif": "-1", "1Points": "3",
-      "2Standing": "same.png", "2ClubName": "Y Seintiau Newydd", "2Chwarae": "0", "2Enill": "0", "2Cyfartal": "0", "2Colli": "0", "2GoalDif": "0",  "2Points": "0"
+      "1Standing": "same.png", "1ClubName": "Caernarfon",        "1Chwarae": "3", "1Enill": "1", "1Cyfartal": "0", "1Colli": "0", "1GoalDif": "-1", "1Points": "3",
+      "2Standing": "up.png",   "2ClubName": "Y Seintiau Newydd", "2Chwarae": "0", "2Enill": "0", "2Cyfartal": "0", "2Colli": "0", "2GoalDif": "0",  "2Points": "0"
     };
     importData([sample]);
     setStatus("Wedi llwytho enghraifft / Sample loaded");
@@ -378,7 +459,7 @@
     if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
     e.target.value = ""; // allow re-importing the same file
   });
-  // Live preview on any edit (covers both text/number inputs and the select).
+  // Live preview on any edit (covers text/number inputs and the select).
   tableBody.addEventListener("input", updatePreview);
   tableBody.addEventListener("change", updatePreview);
 })();
