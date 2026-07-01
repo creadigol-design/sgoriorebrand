@@ -163,24 +163,24 @@
   ];
 
   // Club suggestions for the Club Name combobox (type freely or pick).
-  // Edit this list to change the dropdown. On-air spelling lives here.
+  // Welsh on-air names for the 16 clubs (English equivalents in comments).
   var CLUB_SUGGESTIONS = [
-    "Airbus UK Broughton",
-    "Ammanford",
-    "Barry Town United",
-    "Briton Ferry Llansawel",
-    "Caernarfon Town",
-    "Cambrian United",
-    "Cardiff Met",
-    "Colwyn Bay",
-    "Connah's Quay Nomads",
-    "Flint Town United",
-    "Haverfordwest County",
-    "Holywell Town",
-    "Llandudno",
-    "Penybont",
-    "The New Saints",
-    "Trefelin"
+    "Airbus UK",          // Airbus UK Broughton
+    "Bae Colwyn",         // Colwyn Bay
+    "Caernarfon",         // Caernarfon Town
+    "Cambrian",           // Cambrian United
+    "Cei Connah",         // Connah's Quay Nomads
+    "Hwlffordd",          // Haverfordwest County
+    "Llandudno",          // Llandudno
+    "Llansawel",          // Briton Ferry Llansawel
+    "Met Caerdydd",       // Cardiff Met
+    "Pen-y-bont",         // Penybont
+    "Rhydaman",           // Ammanford
+    "Trefelin",           // Trefelin
+    "Treffynnon",         // Holywell Town
+    "Y Barri",            // Barry Town United
+    "Y Fflint",           // Flint Town United
+    "Y Seintiau Newydd"   // The New Saints
   ];
 
   // ---- The 8 fields per team, in export key order. "Standing" is first. ----
@@ -452,8 +452,8 @@
   // Sample data based on the supplied test JSON (positions 1 & 2), with demo Standing PNGs.
   function loadSample() {
     var sample = {
-      "1Standing": "same.png", "1ClubName": "Caernarfon Town", "1Chwarae": "3", "1Enill": "1", "1Cyfartal": "0", "1Colli": "0", "1GoalDif": "-1", "1Points": "3",
-      "2Standing": "up.png",   "2ClubName": "The New Saints",  "2Chwarae": "0", "2Enill": "0", "2Cyfartal": "0", "2Colli": "0", "2GoalDif": "0",  "2Points": "0"
+      "1Standing": "same.png", "1ClubName": "Caernarfon",        "1Chwarae": "3", "1Enill": "1", "1Cyfartal": "0", "1Colli": "0", "1GoalDif": "-1", "1Points": "3",
+      "2Standing": "up.png",   "2ClubName": "Y Seintiau Newydd", "2Chwarae": "0", "2Enill": "0", "2Cyfartal": "0", "2Colli": "0", "2GoalDif": "0",  "2Points": "0"
     };
     importData([sample]);
     setStatus("Wedi llwytho enghraifft / Sample loaded");
