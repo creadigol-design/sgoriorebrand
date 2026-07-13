@@ -162,6 +162,10 @@
     { value: "same.png", label: "—", title: "Dim newid / Same" }
   ];
 
+  // When a team's movement is left blank, export this PNG instead of an empty
+  // string — an empty value errors in DataClay / After Effects.
+  var STANDING_DEFAULT = "same.png";
+
   // Club suggestions for the Club Name combobox (type freely or pick).
   // Welsh on-air names for the 16 clubs (English equivalents in comments).
   var CLUB_SUGGESTIONS = [
@@ -328,6 +332,7 @@
         var el = document.getElementById(inputId(pos, f.key));
         var val = el ? String(el.value).trim() : "";
         if (val === "" && f.type === "number") val = "0";  // numbers default to "0"
+        if (val === "" && f.type === "png") val = STANDING_DEFAULT;  // blank movement -> same.png (avoids DataClay/AE error)
         row["" + pos + f.key] = val;  // string key preserves insertion order
       }
     }
