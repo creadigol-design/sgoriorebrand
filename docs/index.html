@@ -10,6 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<!-- Sztos via Adobe Fonts: paste your Web Project embed link here (replace XXXXXXX with your kit id):
+<link rel="stylesheet" href="https://use.typekit.net/XXXXXXX.css" /> -->
 
 <style>
   :root {
@@ -21,7 +23,8 @@
     --muted: #cdbfe6;
     --focus: #b388ff;
     /* Sztos brand font (see @font-face below); Archivo is the web fallback. */
-    --brand-font: "Sztos", "Archivo", "Arial Narrow", Arial, Helvetica, sans-serif;
+    /* "sztos" = Adobe Fonts (Typekit) name; "Sztos" = self-hosted @font-face; then fallbacks. */
+    --brand-font: "sztos", "Sztos", "Archivo", "Arial Narrow", Arial, Helvetica, sans-serif;
     --ui-font: system-ui, -apple-system, Segoe UI, Arial, sans-serif;
   }
   /* Sztos brand font — add the files to docs/fonts/ (woff2 preferred; woff/otf also work).
@@ -407,7 +410,7 @@
     return 1.0;
   }
   function fontStr(weight, px) {
-    return weight + " " + Math.round(px) + "px 'Sztos','Archivo','Arial Narrow',Arial,Helvetica,sans-serif";
+    return weight + " " + Math.round(px) + "px 'sztos','Sztos','Archivo','Arial Narrow',Arial,Helvetica,sans-serif";
   }
   // Shrink the font until text fits maxW (keeps long club names in bounds).
   function fitFont(ctx, text, maxW, startPx, weight) {
