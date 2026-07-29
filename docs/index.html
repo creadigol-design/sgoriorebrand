@@ -9,22 +9,37 @@
      via @font-face below when you have the files; falls back gracefully offline. -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
 <style>
   :root {
     --bg: #000;
-    --purple: #6c2bd9;          /* TODO: set to the exact Sgorio brand purple */
+    --purple: #5b02b1;          /* Sgorio brand purple */
     --row-a: #1a1622;
     --row-b: #221c2c;
     --text: #ffffff;
     --muted: #cdbfe6;
     --focus: #b388ff;
-    /* Drop the real brand font in front of this stack via @font-face. */
-    --brand-font: "Sgorio", "Archivo", "Arial Narrow", Arial, Helvetica, sans-serif;
+    /* Sztos brand font (see @font-face below); Archivo is the web fallback. */
+    --brand-font: "Sztos", "Archivo", "Arial Narrow", Arial, Helvetica, sans-serif;
     --ui-font: system-ui, -apple-system, Segoe UI, Arial, sans-serif;
   }
-  /* @font-face { font-family: "Sgorio"; src: url("fonts/Sgorio.woff2") format("woff2"); font-weight: 400 900; } */
+  /* Sztos brand font — add the files to docs/fonts/ (woff2 preferred; woff/otf also work).
+     Regular = body/stats/headers, SemiBold = club names. Falls back to Archivo until present. */
+  @font-face {
+    font-family: "Sztos";
+    src: url("fonts/Sztos-Regular.woff2") format("woff2"),
+         url("fonts/Sztos-Regular.woff") format("woff"),
+         url("fonts/Sztos-Regular.otf") format("opentype");
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "Sztos";
+    src: url("fonts/Sztos-SemiBold.woff2") format("woff2"),
+         url("fonts/Sztos-SemiBold.woff") format("woff"),
+         url("fonts/Sztos-SemiBold.otf") format("opentype");
+    font-weight: 600; font-style: normal; font-display: swap;
+  }
 
   * { box-sizing: border-box; }
   body { margin: 0; padding: 24px; background: var(--bg); color: var(--text); font-family: var(--brand-font); }
@@ -43,7 +58,7 @@
   .status { font-size: 12px; color: #9fe39f; min-height: 16px; margin-left: 8px; font-family: var(--ui-font); }
 
   /* ---- The broadcast-style table ---- */
-  .tableWrap { max-width: 980px; border-radius: 10px; overflow: hidden; }
+  .tableWrap { max-width: 980px; border-radius: 10px; overflow: hidden; position: relative; }
   table { border-collapse: collapse; width: 100%; table-layout: fixed; }
   th, td { padding: 11px 10px; border: 0; white-space: nowrap; overflow: hidden; }
 
@@ -53,8 +68,11 @@
   thead th:nth-child(n+4) { width: 74px; } /* CH .. PT */
 
   /* Header: purple bar with a white block over the first two columns */
-  thead th { background: var(--purple); color: #fff; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; font-size: 14px; text-align: center; height: 46px; }
-  thead th.blank { background: #fff; }
+  thead th { background: var(--purple); color: #fff; font-weight: 400; text-transform: uppercase; letter-spacing: 2px; font-size: 14px; text-align: center; height: 46px; }
+  thead th.blank { background: #fff; text-align: center; vertical-align: middle; padding: 4px 8px; }
+  /* Sgorio logo overlaid on the white header block (movement + position cols = 118px) */
+  .logoBox { position: absolute; top: 0; left: 0; width: 118px; height: 46px; display: flex; align-items: center; justify-content: center; padding: 5px 9px; pointer-events: none; }
+  .logoBox img { max-width: 100%; max-height: 100%; object-fit: contain; }
   thead th.team { text-align: left; }
 
   /* Data rows */
@@ -62,9 +80,9 @@
   tbody tr:nth-child(even) { background: var(--row-b); }
 
   td.standing { text-align: center; color: #fff; font-size: 18px; }
-  td.pos      { text-align: center; color: var(--muted); font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; }
-  td.club     { text-align: left; color: #fff; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; font-size: 16px; }
-  td.num      { text-align: center; color: #fff; font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+  td.pos      { text-align: center; color: var(--muted); font-weight: 400; font-size: 18px; font-variant-numeric: tabular-nums; }
+  td.club     { text-align: left; color: #fff; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 16px; }
+  td.num      { text-align: center; color: #fff; font-weight: 400; font-size: 17px; font-variant-numeric: tabular-nums; }
 
   /* Make inputs/selects render like plain text in the cell, but stay editable */
   td input, td select {
@@ -117,6 +135,7 @@
   </div>
 
   <div class="tableWrap">
+    <div class="logoBox"><img src="assets/sgorio-logo.png" alt="Sgorio" onerror="this.style.display='none'" /></div>
     <table id="tableEl">
       <thead>
         <tr id="headRow"></tr>
@@ -369,6 +388,12 @@
     setStatus("Wedi allforio / Exported: " + name);
   }
 
+  // Sgorio logo shown in the white header block (on-screen + PNG export).
+  // Add the file at docs/assets/sgorio-logo.png (black on transparent).
+  var LOGO_SRC = "assets/sgorio-logo.png";
+  var logoImg = new Image();
+  logoImg.src = LOGO_SRC;
+
   // ---- Download the table as a PNG (drawn on a canvas; no libraries) ----
   // Column sets. The vertical 9:16 layout drops Cyfartal, Colli and GoalDif.
   var PNG_COLS_FULL = ["move", "pos", "ClubName", "Chwarae", "Enill", "Cyfartal", "Colli", "GoalDif", "Points"];
@@ -382,7 +407,7 @@
     return 1.0;
   }
   function fontStr(weight, px) {
-    return weight + " " + Math.round(px) + "px 'Archivo','Arial Narrow',Arial,Helvetica,sans-serif";
+    return weight + " " + Math.round(px) + "px 'Sztos','Archivo','Arial Narrow',Arial,Helvetica,sans-serif";
   }
   // Shrink the font until text fits maxW (keeps long club names in bounds).
   function fitFont(ctx, text, maxW, startPx, weight) {
@@ -428,13 +453,21 @@
     ctx.textBaseline = "middle";
 
     // Header: purple bar + white block over the movement/position columns
-    ctx.fillStyle = "#6c2bd9"; ctx.fillRect(0, 0, W, headH);
+    ctx.fillStyle = "#5b02b1"; ctx.fillRect(0, 0, W, headH);
     var posCol = layout[1];
-    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, posCol.x + posCol.w, headH);
+    var blockW = posCol.x + posCol.w;
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, blockW, headH);
+    // Sgorio logo in the white block (once the asset has loaded)
+    if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+      var lpad = headH * 0.24;
+      var s = Math.min((blockW - lpad * 2) / logoImg.naturalWidth, (headH - lpad * 2) / logoImg.naturalHeight);
+      var lw = logoImg.naturalWidth * s, lh = logoImg.naturalHeight * s;
+      ctx.drawImage(logoImg, (blockW - lw) / 2, (headH - lh) / 2, lw, lh);
+    }
     layout.forEach(function (col) {
       var label = COL_HEAD[col.c] || "";
       if (!label) return;
-      ctx.fillStyle = "#ffffff"; ctx.font = fontStr("800", rowH * 0.34);
+      ctx.fillStyle = "#ffffff"; ctx.font = fontStr("400", rowH * 0.34);
       if (col.c === "ClubName") { ctx.textAlign = "left"; ctx.fillText(label, col.x + col.w * 0.05, headH / 2); }
       else { ctx.textAlign = "center"; ctx.fillText(label, col.x + col.w / 2, headH / 2); }
     });
@@ -448,16 +481,16 @@
         if (col.c === "move") {
           drawMovement(ctx, data[p + "Standing"], col.x + col.w / 2, cy, rowH * 0.20);
         } else if (col.c === "pos") {
-          ctx.fillStyle = "#cdbfe6"; ctx.textAlign = "center"; ctx.font = fontStr("700", rowH * 0.5);
+          ctx.fillStyle = "#cdbfe6"; ctx.textAlign = "center"; ctx.font = fontStr("400", rowH * 0.5);
           ctx.fillText(String(p), col.x + col.w / 2, cy);
         } else if (col.c === "ClubName") {
           var name = String(data[p + "ClubName"] || "").toUpperCase();
-          var px = fitFont(ctx, name, col.w * 0.92, rowH * 0.44, "800");
-          ctx.font = fontStr("800", px);
+          var px = fitFont(ctx, name, col.w * 0.92, rowH * 0.44, "600");
+          ctx.font = fontStr("600", px);
           ctx.fillStyle = "#ffffff"; ctx.textAlign = "left";
           ctx.fillText(name, col.x + col.w * 0.05, cy);
         } else {
-          ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.font = fontStr("700", rowH * 0.46);
+          ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.font = fontStr("400", rowH * 0.46);
           ctx.fillText(String(data[p + col.c] || ""), col.x + col.w / 2, cy);
         }
       });
