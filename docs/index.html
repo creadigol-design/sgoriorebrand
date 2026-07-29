@@ -105,6 +105,8 @@
     <label class="btn" for="importFile">⬆ Mewnforio / Import JSON</label>
     <input type="file" id="importFile" accept="application/json,.json" />
     <button id="copyBtn">⧉ Copïo / Copy JSON</button>
+    <button id="pngFullBtn">🖼 PNG llawn (16:9)</button>
+    <button id="pngVertBtn">🖼 PNG 9:16</button>
     <button id="sortBtn">↕ Trefnu yn ôl Pwyntiau / Sort by Points</button>
     <button id="sampleBtn">Llwytho enghraifft / Load sample</button>
     <button id="clearBtn">✕ Clirio / Clear all</button>
@@ -367,6 +369,129 @@
     setStatus("Wedi allforio / Exported: " + name);
   }
 
+  // ---- Download the table as a PNG (drawn on a canvas; no libraries) ----
+  // Column sets. The vertical 9:16 layout drops Cyfartal, Colli and GoalDif.
+  var PNG_COLS_FULL = ["move", "pos", "ClubName", "Chwarae", "Enill", "Cyfartal", "Colli", "GoalDif", "Points"];
+  var PNG_COLS_VERT = ["move", "pos", "ClubName", "Chwarae", "Enill", "Points"];
+  var COL_HEAD = { ClubName: "TÎM", Chwarae: "CH", Enill: "E", Cyfartal: "CYF", Colli: "COLL", GoalDif: "+/-", Points: "PT" };
+
+  function colWeight(c) {
+    if (c === "move") return 1.0;
+    if (c === "pos") return 0.8;
+    if (c === "ClubName") return 4.5;
+    return 1.0;
+  }
+  function fontStr(weight, px) {
+    return weight + " " + Math.round(px) + "px 'Archivo','Arial Narrow',Arial,Helvetica,sans-serif";
+  }
+  // Shrink the font until text fits maxW (keeps long club names in bounds).
+  function fitFont(ctx, text, maxW, startPx, weight) {
+    var px = startPx;
+    while (px > 10) {
+      ctx.font = fontStr(weight, px);
+      if (ctx.measureText(text).width <= maxW) break;
+      px -= 1;
+    }
+    return px;
+  }
+  function drawMovement(ctx, val, cx, cy, r) {
+    ctx.fillStyle = "#ffffff";
+    if (val === "up.png") {
+      ctx.beginPath(); ctx.moveTo(cx, cy - r); ctx.lineTo(cx + r, cy + r); ctx.lineTo(cx - r, cy + r); ctx.closePath(); ctx.fill();
+    } else if (val === "down.png") {
+      ctx.beginPath(); ctx.moveTo(cx, cy + r); ctx.lineTo(cx + r, cy - r); ctx.lineTo(cx - r, cy - r); ctx.closePath(); ctx.fill();
+    } else { // same.png or blank -> dash
+      ctx.fillRect(cx - r, cy - Math.max(2, r * 0.16), r * 2, Math.max(4, r * 0.32));
+    }
+  }
+  function renderTableCanvas(mode) {
+    var isVert = mode === "vertical";
+    var W = isVert ? 1080 : 1920;
+    var H = isVert ? 1920 : 1080;
+    var cols = isVert ? PNG_COLS_VERT : PNG_COLS_FULL;
+
+    var canvas = document.createElement("canvas");
+    canvas.width = W; canvas.height = H;
+    var ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#0a0a0a"; ctx.fillRect(0, 0, W, H);
+
+    var headH = (H / (ROWS + 1)) * 1.15;
+    var rowH = (H - headH) / ROWS;
+    var padX = Math.round(W * 0.012);
+    var usableW = W - padX * 2;
+    var totalWeight = 0; cols.forEach(function (c) { totalWeight += colWeight(c); });
+    var layout = []; var x = padX;
+    cols.forEach(function (c) { var w = usableW * (colWeight(c) / totalWeight); layout.push({ c: c, x: x, w: w }); x += w; });
+
+    var data = collectData()[0];
+    ctx.textBaseline = "middle";
+
+    // Header: purple bar + white block over the movement/position columns
+    ctx.fillStyle = "#6c2bd9"; ctx.fillRect(0, 0, W, headH);
+    var posCol = layout[1];
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, posCol.x + posCol.w, headH);
+    layout.forEach(function (col) {
+      var label = COL_HEAD[col.c] || "";
+      if (!label) return;
+      ctx.fillStyle = "#ffffff"; ctx.font = fontStr("800", rowH * 0.34);
+      if (col.c === "ClubName") { ctx.textAlign = "left"; ctx.fillText(label, col.x + col.w * 0.05, headH / 2); }
+      else { ctx.textAlign = "center"; ctx.fillText(label, col.x + col.w / 2, headH / 2); }
+    });
+
+    for (var p = 1; p <= ROWS; p++) {
+      var y = headH + (p - 1) * rowH;
+      ctx.fillStyle = (p % 2 === 1) ? "#1a1622" : "#221c2c";
+      ctx.fillRect(0, y, W, rowH);
+      var cy = y + rowH / 2;
+      layout.forEach(function (col) {
+        if (col.c === "move") {
+          drawMovement(ctx, data[p + "Standing"], col.x + col.w / 2, cy, rowH * 0.20);
+        } else if (col.c === "pos") {
+          ctx.fillStyle = "#cdbfe6"; ctx.textAlign = "center"; ctx.font = fontStr("700", rowH * 0.5);
+          ctx.fillText(String(p), col.x + col.w / 2, cy);
+        } else if (col.c === "ClubName") {
+          var name = String(data[p + "ClubName"] || "").toUpperCase();
+          var px = fitFont(ctx, name, col.w * 0.92, rowH * 0.44, "800");
+          ctx.font = fontStr("800", px);
+          ctx.fillStyle = "#ffffff"; ctx.textAlign = "left";
+          ctx.fillText(name, col.x + col.w * 0.05, cy);
+        } else {
+          ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.font = fontStr("700", rowH * 0.46);
+          ctx.fillText(String(data[p + col.c] || ""), col.x + col.w / 2, cy);
+        }
+      });
+    }
+    return canvas;
+  }
+  function pngFileName(mode) {
+    var base = (document.getElementById("filename").value || "sgorio-table16").trim()
+      .replace(/\.json$/i, "").replace(/\.png$/i, "");
+    if (!base) base = "sgorio-table16";
+    return base + (mode === "vertical" ? "-9x16" : "-16x9") + ".png";
+  }
+  function downloadPng(mode) {
+    var run = function () {
+      var canvas = renderTableCanvas(mode);
+      var name = pngFileName(mode);
+      canvas.toBlob(function (blob) {
+        if (!blob) { setStatus("Methu creu PNG / Could not create PNG"); return; }
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url; a.download = name;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setStatus("Wedi allforio PNG / Exported PNG: " + name);
+      }, "image/png");
+    };
+    // Ensure the web font is ready so the canvas text matches the on-screen table.
+    if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+      document.fonts.ready.then(run, run);
+    } else {
+      run();
+    }
+  }
+
   // ---- Copy to clipboard ----
   function copyJSON() {
     var text = jsonText();
@@ -472,6 +597,8 @@
 
   document.getElementById("exportBtn").addEventListener("click", exportJSON);
   document.getElementById("copyBtn").addEventListener("click", copyJSON);
+  document.getElementById("pngFullBtn").addEventListener("click", function () { downloadPng("full"); });
+  document.getElementById("pngVertBtn").addEventListener("click", function () { downloadPng("vertical"); });
   document.getElementById("sortBtn").addEventListener("click", sortByPoints);
   document.getElementById("sampleBtn").addEventListener("click", loadSample);
   document.getElementById("clearBtn").addEventListener("click", clearAll);
