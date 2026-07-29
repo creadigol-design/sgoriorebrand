@@ -25,7 +25,7 @@
     --ui-font: system-ui, -apple-system, Segoe UI, Arial, sans-serif;
   }
   /* Sztos brand font — add the files to docs/fonts/ (woff2 preferred; woff/otf also work).
-     Regular = body/stats/headers, SemiBold = club names. Falls back to Archivo until present. */
+     Regular = body/stats/headers, Bold = club names. Falls back to Archivo until present. */
   @font-face {
     font-family: "Sztos";
     src: url("fonts/Sztos-Regular.woff2") format("woff2"),
@@ -35,10 +35,10 @@
   }
   @font-face {
     font-family: "Sztos";
-    src: url("fonts/Sztos-SemiBold.woff2") format("woff2"),
-         url("fonts/Sztos-SemiBold.woff") format("woff"),
-         url("fonts/Sztos-SemiBold.otf") format("opentype");
-    font-weight: 600; font-style: normal; font-display: swap;
+    src: url("fonts/Sztos-Bold.woff2") format("woff2"),
+         url("fonts/Sztos-Bold.woff") format("woff"),
+         url("fonts/Sztos-Bold.otf") format("opentype");
+    font-weight: 700; font-style: normal; font-display: swap;
   }
 
   * { box-sizing: border-box; }
@@ -81,7 +81,7 @@
 
   td.standing { text-align: center; color: #fff; font-size: 18px; }
   td.pos      { text-align: center; color: var(--muted); font-weight: 400; font-size: 18px; font-variant-numeric: tabular-nums; }
-  td.club     { text-align: left; color: #fff; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 16px; }
+  td.club     { text-align: left; color: #fff; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 16px; }
   td.num      { text-align: center; color: #fff; font-weight: 400; font-size: 17px; font-variant-numeric: tabular-nums; }
 
   /* Make inputs/selects render like plain text in the cell, but stay editable */
@@ -485,8 +485,8 @@
           ctx.fillText(String(p), col.x + col.w / 2, cy);
         } else if (col.c === "ClubName") {
           var name = String(data[p + "ClubName"] || "").toUpperCase();
-          var px = fitFont(ctx, name, col.w * 0.92, rowH * 0.44, "600");
-          ctx.font = fontStr("600", px);
+          var px = fitFont(ctx, name, col.w * 0.92, rowH * 0.44, "700");
+          ctx.font = fontStr("700", px);
           ctx.fillStyle = "#ffffff"; ctx.textAlign = "left";
           ctx.fillText(name, col.x + col.w * 0.05, cy);
         } else {
